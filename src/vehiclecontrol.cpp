@@ -635,7 +635,7 @@ void VehicleControl::GetTemps(float& tmphs, float &tmpm)
    {
       //74HCT4052, S0 = temp0_out (PC10), S1 = temp1_out (PC8)
       //Side 2 -> tmphs: Y0..Y2 = module NTC U, V, W (CN2 17, 19, 21), Y3 = GND
-      //Side 1 -> tmpm:  Y0 = motor sensor (CN1 J1), Y1 = aux temp (aux header, not used yet), Y2/Y3 = GND
+      //Side 1 -> tmpm:  Y0 = motor sensor (CN1 J1), Y1..Y3 = GND
       static float hsTemps[3];
 
       int input = DigIo::temp0_out.Get() + 2 * DigIo::temp1_out.Get();
