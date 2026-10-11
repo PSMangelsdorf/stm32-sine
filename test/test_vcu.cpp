@@ -27,6 +27,7 @@
 #include "throttle.h"
 #include "stub_canhardware.h"
 #include "test.h"
+#include <map>
 
 static uint32_t crc32_word(uint32_t Crc, uint32_t Data);
 
@@ -211,17 +212,23 @@ extern "C" void spi_setup()
 
 }
 
+//Simulated GPIO state, only for pins a test has configured (port != 0). DigIo objects that
+//were never configured keep port 0 and read 0 as before.
+std::map<uint32_t, uint16_t> gpioSim;
+
 extern "C" uint16_t gpio_get(uint32_t port, uint16_t pin)
 {
-   return 0;
+   return port ? gpioSim[port] & pin : 0;
 }
 
 extern "C" void gpio_set(uint32_t port, uint16_t pin)
 {
+   if (port) gpioSim[port] |= pin;
 }
 
 extern "C" void gpio_clear(uint32_t port, uint16_t pin)
 {
+   if (port) gpioSim[port] &= ~pin;
 }
 
 extern "C" uint16_t spi_xfer(uint32_t, uint16_t)
@@ -251,6 +258,7 @@ DigIo DigIo::emcystop_in;
 DigIo DigIo::bms_in;
 DigIo DigIo::ocur_in;
 DigIo DigIo::desat_in;
+DigIo DigIo::gateok_in;
 AnaIn AnaIn::uaux(0);
 AnaIn AnaIn::udc(1);
 AnaIn AnaIn::tmphs(2);
@@ -258,14 +266,18 @@ AnaIn AnaIn::tmpm(3);
 AnaIn AnaIn::throttle1(4);
 AnaIn AnaIn::throttle2(5);
 
-void DigIo::Configure(uint32_t, uint16_t, PinMode::PinMode)
+void DigIo::Configure(uint32_t port, uint16_t pin, PinMode::PinMode)
 {
-
+   _port = port;
+   _pin = pin;
+   _invert = false;
 }
+
+uint16_t anaInSim[8]; //simulated ADC readings by channel, 0 unless a test sets them
 
 uint16_t AnaIn::Get()
 {
-   return 0;
+   return anaInSim[GetIndex()];
 }
 
 void ErrorMessage::Post(ERROR_MESSAGE_NUM e)
