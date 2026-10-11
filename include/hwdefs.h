@@ -45,7 +45,8 @@
 
 typedef enum
 {
-   HW_REV1, HW_REV2, HW_REV3, HW_TESLA, HW_BLUEPILL, HW_PRIUS, HW_MINI, HW_LEAF2, HW_LEAF3, HW_BMWI3, HW_ZOE
+   HW_REV1, HW_REV2, HW_REV3, HW_TESLA, HW_BLUEPILL, HW_PRIUS, HW_MINI, HW_LEAF2, HW_LEAF3, HW_BMWI3, HW_ZOE,
+   HW_BOLT //Open-source replacement logic board for the Chevrolet Bolt EV inverter (based on Tesla V6)
 } HWREV;
 
 extern HWREV hwRev;

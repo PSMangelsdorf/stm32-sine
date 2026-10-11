@@ -158,7 +158,20 @@ void PwmGeneration::SetOpmode(int _opmode)
 
 extern "C" void tim1_brk_isr(void)
 {
-   if (!DigIo::desat_in.Get() && hwRev != HW_REV1 && hwRev != HW_BLUEPILL)
+   if (hwRev == HW_BOLT)
+   {
+      //Hardware break = NAND of gate fault (CN2 22), gate board health (CN2 7-10) and over current.
+      //Emergency stop and motor protection are not part of it on this board.
+      if (!DigIo::desat_in.Get())         //1ED020I12 FLT/RDY (wire-OR, active low)
+         ErrorMessage::Post(ERR_DESAT);
+      else if (!DigIo::gateok_in.Get())   //gate board health lines
+         ErrorMessage::Post(ERR_GATEBOARD);
+      else if (DigIo::ocur_in.Get())      //no over current: transient gate board fault
+         ErrorMessage::Post(ERR_DESAT);
+      else
+         ErrorMessage::Post(ERR_OVERCURRENT);
+   }
+   else if (!DigIo::desat_in.Get() && hwRev != HW_REV1 && hwRev != HW_BLUEPILL)
       ErrorMessage::Post(ERR_DESAT);
    else if (!DigIo::emcystop_in.Get() && hwRev != HW_REV3)
       ErrorMessage::Post(ERR_EMCYSTOP);

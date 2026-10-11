@@ -24,6 +24,8 @@
     DIG_IO_ENTRY(temp0_out,   GPIOC, GPIO10, PinMode::OUTPUT)      \
     DIG_IO_ENTRY(speed_out,   GPIOB, GPIO9,  PinMode::OUTPUT)      \
     DIG_IO_ENTRY(brk_out,     GPIOC, GPIO5,  PinMode::OUTPUT)      \
+    DIG_IO_ENTRY(gatepwr_out, GPIOD, GPIO14, PinMode::OUTPUT) /* Bolt only (PA15), non-existant elsewhere */ \
+    DIG_IO_ENTRY(gateok_in,   GPIOD, GPIO15, PinMode::INPUT_FLT) /* Bolt only (PA0), non-existant elsewhere */ \
 
 #define DIG_IO_BLUEPILL \
     DIG_IO_ENTRY(brake_in,    GPIOB, GPIO9,  PinMode::INPUT_FLT)   \

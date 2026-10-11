@@ -97,6 +97,9 @@ static const uint16_t OutlanderFront[] = { OUTLANDERFRONT };
 /* EPCOS B57861-S 103-F40 temp sensor */
 static const uint16_t epcosb57861[] = { EPCOSB57861 };
 
+/* Module NTC in the Chevrolet Bolt inverter (FS800R07A2E3) on the Bolt logic board */
+static const uint16_t boltFs800[] = { BOLT_FS800 };
+
 static const TEMP_SENSOR sensors[] =
 {
    { -25, 105, 5,  TABLEN(JCurve),         NTC, JCurve     },
@@ -119,6 +122,7 @@ static const TEMP_SENSOR sensors[] =
    { -40, 300, 10, TABLEN(OutlanderFront), NTC, OutlanderFront },
    { -50, 150, 10, TABLEN(epcosb57861),    NTC, epcosb57861},
    { -20, 200, 5,  TABLEN(ToyotaGen2),     NTC, ToyotaGen2 },
+   { -40, 150, 5,  TABLEN(boltFs800),      PTC, boltFs800  },
 };
 
 float TempMeas::Lookup(int digit, Sensors sensorId)
