@@ -138,5 +138,41 @@ static void TestGateOkValue()
    hwRev = savedRev;
 }
 
+static void TestNoEmcystopMprotInputs()
+{
+   HWREV savedRev = hwRev;
+
+   //Other boards report the pin state (stub reads 0 = error)
+   hwRev = HW_REV3;
+   VehicleControl::GetDigInputs();
+   ASSERT(Param::GetInt(Param::din_emcystop) == 0);
+   ASSERT(Param::GetInt(Param::din_mprot) == 0);
+
+   //The Bolt board has neither input: reported as not available
+   hwRev = HW_BOLT;
+   VehicleControl::GetDigInputs();
+   ASSERT(Param::GetInt(Param::din_emcystop) == 2);
+   ASSERT(Param::GetInt(Param::din_mprot) == 2);
+
+   hwRev = savedRev;
+}
+
+static void TestNoAuxVoltage()
+{
+   HWREV savedRev = hwRev;
+   anaInSim[0] = 4095; //uaux channel: PA3 pulled up to 3.3 V on the Bolt board
+
+   hwRev = HW_REV3;
+   VehicleControl::ProcessUdc();
+   ASSERT(Param::GetFloat(Param::uaux) > 16); //divider scaling applied on other boards
+
+   hwRev = HW_BOLT;
+   VehicleControl::ProcessUdc();
+   ASSERT(Param::GetFloat(Param::uaux) == 0);
+
+   anaInSim[0] = 0;
+   hwRev = savedRev;
+}
+
 REGISTER_TEST(UnitTest, TestNtcTablePoints, TestNtcTableLimits, TestTempMuxSequence, TestTempMuxReadings,
-              TestGateOkValue);
+              TestGateOkValue, TestNoEmcystopMprotInputs, TestNoAuxVoltage);

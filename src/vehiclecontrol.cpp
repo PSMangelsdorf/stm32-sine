@@ -408,10 +408,11 @@ void VehicleControl::GetDigInputs()
    Param::SetInt(Param::din_cruise, DigIo::cruise_in.Get() | ((canio & CAN_IO_CRUISE) != 0));
    Param::SetInt(Param::din_start, DigIo::start_in.Get() | ((canio & CAN_IO_START) != 0));
    Param::SetInt(Param::din_brake, DigIo::brake_in.Get() | ((canio & CAN_IO_BRAKE) != 0));
-   Param::SetInt(Param::din_mprot, DigIo::mprot_in.Get());
+   //Bolt board: no emergency stop / motor protection inputs, pull-ups hold the pins at OK
+   Param::SetInt(Param::din_mprot, hwRev == HW_BOLT ? 2 : DigIo::mprot_in.Get());
    Param::SetInt(Param::din_forward, DigIo::fwd_in.Get() | ((canio & CAN_IO_FWD) != 0));
    Param::SetInt(Param::din_reverse, DigIo::rev_in.Get() | ((canio & CAN_IO_REV) != 0));
-   Param::SetInt(Param::din_emcystop, DigIo::emcystop_in.Get());
+   Param::SetInt(Param::din_emcystop, hwRev == HW_BOLT ? 2 : DigIo::emcystop_in.Get());
    Param::SetInt(Param::din_bms, (canio & CAN_IO_BMS) != 0 || (hwRev == HW_TESLA || hwRev == HW_BOLT ? false : DigIo::bms_in.Get()) );
    Param::SetInt(Param::din_gateok, hwRev == HW_BOLT ? DigIo::gateok_in.Get() : 2);
 
@@ -488,7 +489,8 @@ float VehicleControl::ProcessUdc()
    //1.2/(4.7+1.2)/3.33*4095 = 250 -> make it a bit less for pin losses etc
    //HW_REV1 had 3.9k resistors
    int uauxGain = hwRev == HW_REV1 ? 289 : 249;
-   Param::SetFloat(Param::uaux, (float)AnaIn::uaux.Get() / uauxGain);
+   //Bolt board: no divider on the mprot pin (just a pull-up to 3.3 V), so no 12 V measurement
+   Param::SetFloat(Param::uaux, hwRev == HW_BOLT ? 0 : (float)AnaIn::uaux.Get() / uauxGain);
 
    if (hwRev == HW_ZOE) return 0; //no udc measurement, nothing to do
 
