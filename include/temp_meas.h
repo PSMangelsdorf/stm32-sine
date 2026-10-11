@@ -45,6 +45,7 @@ public:
       TEMP_OUTLANDERFRONT = 21,
       TEMP_EPCOSB56871 = 22,
       TEMP_TOYOTAGEN2 = 23,
+      TEMP_BOLT_FS800 = 24, /* Bolt board only, selected by hardware (not via snshs/snsm) */
       TEMP_LAST
    };
 
@@ -661,6 +662,49 @@ public:
 2327	,\
 2454
 
+
+/* Infineon FS800R07A2E3 module NTC (R25 = 5.0k, B25/100 = 3433 K) on the Bolt logic board:
+ * 4.7k pull-up to 3.3 V, ADC full scale 3.3 V; -40..150 degC in 5 degC steps */
+#define BOLT_FS800 \
+3945	,\
+3894	,\
+3829	,\
+3749	,\
+3652	,\
+3537	,\
+3403	,\
+3252	,\
+3084	,\
+2903	,\
+2711	,\
+2512	,\
+2310	,\
+2111	,\
+1917	,\
+1731	,\
+1556	,\
+1394	,\
+1244	,\
+1109	,\
+986	,\
+877	,\
+779	,\
+693	,\
+616	,\
+548	,\
+489	,\
+436	,\
+390	,\
+349	,\
+313	,\
+281	,\
+253	,\
+228	,\
+206	,\
+187	,\
+169	,\
+154	,\
+140	
 
 #endif
 

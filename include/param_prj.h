@@ -205,6 +205,7 @@
     VALUE_ENTRY(din_ocur,    OKERR,   2030 ) \
     VALUE_ENTRY(din_desat,   OKERR,   2031 ) \
     VALUE_ENTRY(din_bms,     ONOFF,   2032 ) \
+    VALUE_ENTRY(din_gateok,  OKERR,   2058 ) \
     VALUE_ENTRY(dout_brake,  ONOFF,   2057 ) \
     VALUE_ENTRY(uptime,      "10ms",  2054 ) \
     VALUE_ENTRY(cpuload,     "%",     2035 ) \
@@ -286,7 +287,7 @@
 #define CANSPEEDS    "0=125k, 1=250k, 2=500k, 3=800k, 4=1M"
 #define CANIOS       "1=Cruise, 2=Start, 4=Brake, 8=Fwd, 16=Rev, 32=Bms"
 #define CANPERIODS   "0=100ms, 1=10ms"
-#define HWREVS       "0=Rev1, 1=Rev2, 2=Rev3, 3=Tesla, 4=BluePill, 5=Prius, 6=MiniMainboard, 7=Leaf2, 8=Leaf3, 9=BMWi3, 10=Zoe"
+#define HWREVS       "0=Rev1, 1=Rev2, 2=Rev3, 3=Tesla, 4=BluePill, 5=Prius, 6=MiniMainboard, 7=Leaf2, 8=Leaf3, 9=BMWi3, 10=Zoe, 11=Bolt"
 #define SWAPS        "0=None, 1=Currents12, 2=SinCos, 4=PWMOutput13, 8=PWMOutput23"
 #define OUTMODES     "0=DcSw, 1=TmpmThresh, 2=TmphsThresh"
 #define STATUS       "0=None, 1=UdcLow, 2=UdcHigh, 4=UdcBelowUdcSw, 8=UdcLim, 16=EmcyStop, 32=MProt, 64=PotPressed, 128=TmpHs, 256=WaitStart, 512=BrakeCheck"

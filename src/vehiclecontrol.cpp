@@ -291,7 +291,7 @@ float VehicleControl::ProcessThrottle()
    bool determineDirection = GetCruiseCreepCommand(finalSpnt, throtSpnt);
    finalSpnt = Throttle::RampThrottle(finalSpnt);
 
-   if (hwRev != HW_TESLA)
+   if (hwRev != HW_TESLA && hwRev != HW_BOLT) //bms_in pin is a mux select output on these
       Throttle::BmsLimitCommand(finalSpnt, Param::GetBool(Param::din_bms));
 
    Throttle::fmax = Param::GetFloat(Param::fmax);
@@ -412,7 +412,8 @@ void VehicleControl::GetDigInputs()
    Param::SetInt(Param::din_forward, DigIo::fwd_in.Get() | ((canio & CAN_IO_FWD) != 0));
    Param::SetInt(Param::din_reverse, DigIo::rev_in.Get() | ((canio & CAN_IO_REV) != 0));
    Param::SetInt(Param::din_emcystop, DigIo::emcystop_in.Get());
-   Param::SetInt(Param::din_bms, (canio & CAN_IO_BMS) != 0 || (hwRev == HW_TESLA ? false : DigIo::bms_in.Get()) );
+   Param::SetInt(Param::din_bms, (canio & CAN_IO_BMS) != 0 || (hwRev == HW_TESLA || hwRev == HW_BOLT ? false : DigIo::bms_in.Get()) );
+   Param::SetInt(Param::din_gateok, hwRev == HW_BOLT ? DigIo::gateok_in.Get() : 2);
 
    if (hwRev != HW_REV1 && hwRev != HW_BLUEPILL)
    {
@@ -627,6 +628,47 @@ void VehicleControl::GetTemps(float& tmphs, float &tmpm)
             tmpm = MAX(mTemps[0], mTemps[1]);
             DigIo::temp0_out.Clear();
             DigIo::temp1_out.Clear(); //Switch mux for next round
+            break;
+      }
+   }
+   else if (hwRev == HW_BOLT)
+   {
+      //74HCT4052, S0 = temp0_out (PC10), S1 = temp1_out (PC8)
+      //Side 2 -> tmphs: Y0..Y2 = module NTC U, V, W (CN2 17, 19, 21), Y3 = GND
+      //Side 1 -> tmpm:  Y0 = motor sensor (CN1 J1), Y1 = aux temp (aux header, not used yet), Y2/Y3 = GND
+      static float hsTemps[3];
+
+      int input = DigIo::temp0_out.Get() + 2 * DigIo::temp1_out.Get();
+      int tmphsi = AnaIn::tmphs.Get();
+      int tmpmi = AnaIn::tmpm.Get();
+      TempMeas::Sensors snsm = (TempMeas::Sensors)Param::GetInt(Param::snsm);
+
+      tmphs = Param::GetFloat(Param::tmphs); //default to last value;
+      tmpm = Param::GetFloat(Param::tmpm);
+
+      switch (input)
+      {
+         case 0:
+            hsTemps[0] = TempMeas::Lookup(tmphsi, TempMeas::TEMP_BOLT_FS800);
+            tmpm = TempMeas::Lookup(tmpmi, snsm);
+            DigIo::temp0_out.Set();
+            DigIo::temp1_out.Clear(); //Switch mux for next round
+            break;
+         case 1:
+            hsTemps[1] = TempMeas::Lookup(tmphsi, TempMeas::TEMP_BOLT_FS800);
+            DigIo::temp0_out.Clear();
+            DigIo::temp1_out.Set(); //Switch mux for next round
+            break;
+         case 2:
+            hsTemps[2] = TempMeas::Lookup(tmphsi, TempMeas::TEMP_BOLT_FS800);
+            //Done reading the three module NTCs, report the hottest
+            tmphs = MAX(hsTemps[0], MAX(hsTemps[1], hsTemps[2]));
+            DigIo::temp0_out.Clear();
+            DigIo::temp1_out.Clear(); //Channel 3 is grounded, go straight back to 0
+            break;
+         default:
+            DigIo::temp0_out.Clear();
+            DigIo::temp1_out.Clear();
             break;
       }
    }

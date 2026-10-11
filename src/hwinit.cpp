@@ -99,6 +99,27 @@ static bool is_floating(uint32_t port, uint16_t pin)
    return isFloating;
 }
 
+//A pin is considered pulled down if an external resistor holds it low against the
+//internal ~30k pull-up. Leaves the pin as floating input.
+static bool is_pulled_down(uint32_t port, uint16_t pin)
+{
+   gpio_set_mode(port, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, pin);
+   gpio_set(port, pin); //pull up with internal ~30k
+   for (volatile int i = 0; i < 80000; i++);
+   bool isPulledDown = gpio_get(port, pin) == 0;
+   gpio_set_mode(port, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, pin);
+   gpio_clear(port, pin);
+   return isPulledDown;
+}
+
+//Bolt logic board: 10k to GND on PB4 (board ID strap) and on PA15 (gate supply enable),
+//PB3 left unconnected. All three together make the signature, so a board that merely
+//has something low on one of these pins is not taken for a Bolt board.
+static bool is_bolt_board()
+{
+   return is_pulled_down(GPIOB, GPIO4) && is_pulled_down(GPIOA, GPIO15) && is_floating(GPIOB, GPIO3);
+}
+
 //Careful when using this function, it configures the given pin as output!
 static bool is_existent(uint32_t port, uint16_t pin)
 {
@@ -163,11 +184,17 @@ HWREV detect_hw()
 
    //PC10 back to input
    gpio_set_mode(GPIOC, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO10);
+
    //Pull low via 30k the precharge output to test whether it is tied to Vcc
    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO1);
 
    if (!is_existent(GPIOC, GPIO12)) //Olimex LED pin does not exist
       return HW_BLUEPILL;
+   //After the blue pill test (PB4 is its precharge output, which must not be pulled up), before
+   //the floating-pin tests: on the Bolt board the desat pin (PC9) floats while the gate board is
+   //unpowered and would be taken for Rev1.
+   else if (is_bolt_board())
+      return HW_BOLT;
    else if (is_floating(GPIOC, GPIO9)) //Desat pin is floating
       return HW_REV1;
    else if (is_floating(GPIOB, GPIO5)) //Cruise pin is floating
@@ -206,6 +233,20 @@ HWREV io_setup()
       case HW_BLUEPILL:
          ANA_IN_CONFIGURE(ANA_IN_LIST_BLUEPILL);
          DIG_IO_CONFIGURE(DIG_IO_BLUEPILL);
+         break;
+      case HW_BOLT:
+         //Temperature mux select lines as on Tesla: S0 = PC10 (temp0_out), S1 = PC8
+         DigIo::temp1_out.Configure(GPIOC, GPIO8, PinMode::OUTPUT);
+         //PC10 is the mux select, there is no error LED on this board
+         DigIo::err_out.Configure(GPIOD, GPIO14, PinMode::OUTPUT);
+         //PB9 drives the third low-side switch (pump/fan); no speed output on this board
+         DigIo::speed_out.Configure(GPIOD, GPIO14, PinMode::OUTPUT);
+         DigIo::fan_out.Configure(GPIOB, GPIO9, PinMode::OUTPUT);
+         //Gate board 12 V supply switch, off until main() switches it on after init
+         DigIo::gatepwr_out.Configure(GPIOA, GPIO15, PinMode::OUTPUT);
+         DigIo::gatepwr_out.Clear();
+         //AND of the gate board health lines (CN2 7-10), high = OK
+         DigIo::gateok_in.Configure(GPIOA, GPIO0, PinMode::INPUT_FLT);
          break;
       default:
          break;
@@ -373,6 +414,11 @@ void tim_setup()
       gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO15);
       gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO3);
       gpio_primary_remap(AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON, AFIO_MAPR_TIM2_REMAP_PARTIAL_REMAP1);
+   }
+   else if (hwRev == HW_BOLT)
+   {
+      //Over current thresholds only, PB9 is the pump/fan switch output (fan_out)
+      gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO7 | GPIO8);
    }
    else
    {

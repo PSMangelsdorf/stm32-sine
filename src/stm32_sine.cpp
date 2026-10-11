@@ -211,7 +211,7 @@ static void Ms10Task(void)
       ErrorMessage::UnpostAll();
    }
 
-   if (hwRev != HW_TESLA && opmode >= MOD_BOOST && Param::GetBool(Param::din_bms))
+   if (hwRev != HW_TESLA && hwRev != HW_BOLT && opmode >= MOD_BOOST && Param::GetBool(Param::din_bms))
    {
       opmode = MOD_OFF;
       Param::SetInt(Param::opmode, opmode);
@@ -275,6 +275,13 @@ void Param::Change(Param::PARAM_NUM paramNum)
          break;
       case Param::outmode:
          if (hwRev == HW_BLUEPILL) return; //disable for blue pill
+         if (hwRev == HW_BOLT)
+         {
+            //Dedicated outputs: contactor on PC13, pump/fan on PB9 (PA0 is the gate-OK input)
+            DigIo::dcsw_out.Configure(GPIOC, GPIO13, PinMode::OUTPUT);
+            DigIo::fan_out.Configure(GPIOB, GPIO9, PinMode::OUTPUT);
+            break;
+         }
          switch (Param::GetInt(Param::outmode))
          {
             default:
@@ -409,8 +416,17 @@ extern "C" int main(void)
    hwRev = io_setup();
    tim_setup();
    nvic_setup();
-   parm_load();
+   bool paramsLoaded = parm_load() == 0;
    ErrorMessage::SetTime(1);
+
+   if (hwRev == HW_BOLT && !paramsLoaded)
+   {
+      //First start on a Bolt board (nothing saved yet): current sensor gain for the
+      //HC5FW700 (2.86 mV/A) through the 2k7/4k7 divider: 0.00286 * 0.635 * 4096 / 3.3.
+      //The sign depends on sensor orientation and must be checked when commissioning.
+      Param::SetFloat(Param::il1gain, 2.25f);
+      Param::SetFloat(Param::il2gain, 2.25f);
+   }
    Param::SetInt(Param::pwmio, pwmio_setup(Param::GetBool(Param::pwmpol)));
 
    MotorVoltage::SetMaxAmp(SineCore::MAXAMP);
@@ -443,6 +459,11 @@ extern "C" int main(void)
    Param::Change(Param::nodeid);
    Param::Change(Param::outmode);
    write_bootloader_pininit(Param::GetBool(Param::bootprec), Param::GetBool(Param::pwmpol));
+
+   //Bolt: PWM outputs are configured and parked off, now power the isolated gate driver
+   //supplies. Until here the 1ED020I12 under-voltage lockout holds all IGBTs off.
+   if (hwRev == HW_BOLT)
+      DigIo::gatepwr_out.Set();
 
    while(1)
    {
